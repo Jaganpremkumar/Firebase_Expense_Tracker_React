@@ -1,0 +1,220 @@
+EXPENSE-TRACKER .JS
+
+import { useState } from "react";
+import { signOut } from "firebase/auth";
+import { useAddTransaction } from "../../Hooks/useAddTransaction";
+import { useGetTransactions } from "../../Hooks/useGetTransactions";
+import { useGetUserInfo } from "../../Hooks/useGetUserInfo";
+import { useNavigate } from "react-router-dom";
+
+// import "./style.css";
+import "./expense-tracker.css"
+
+import { auth } from "../../Config/firebase-config";
+
+export const ExpenseTracker = () => {
+  const { addTransaction } = useAddTransaction();
+  const { transactions, transactionTotals } = useGetTransactions();
+  const { name, profilePhoto } = useGetUserInfo();
+  const navigate = useNavigate();
+
+  // State var's
+  const [description, setDescription] = useState("");
+  const [transactionAmount, setTransactionAmount] = useState(0);
+  const [transactionType, setTransactionType] = useState("expense");
+
+  const { balance, income, expenses } = transactionTotals;
+
+  const onSubmit = (e) => {
+    e.preventDefault();
+    // fn
+    addTransaction({
+      description,
+      transactionAmount,
+      transactionType,
+    });
+
+    setDescription("");
+    setTransactionAmount("");
+  };
+
+  const signUserOut = async () => {
+    try {
+      await signOut(auth);
+      localStorage.clear();
+      navigate("/");
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  return (
+    <>
+      <div className="expense-tracker">
+        <div className="container">
+          <h1> {name}'s Expense Tracker</h1>
+
+          <div className="balance">
+            <h3> Your Balance</h3>
+            {balance >= 0 ? <h2> ₹{balance}</h2> : <h2> -₹{balance * -1}</h2>}
+          </div>
+
+          <div className="summary">
+            <div className="income">
+              <h4> Income</h4>
+              <p>₹{income}</p>
+            </div>
+
+            <div className="expenses">
+              <h4> Expenses</h4>
+              <p>₹{expenses}</p>
+            </div>
+          </div>
+
+          <form className="add-transaction" onSubmit={onSubmit}>
+            <input
+              type="text"
+              placeholder="Description"
+              value={description}
+              required
+              onChange={(e) => setDescription(e.target.value)}
+            />
+
+            <input
+              type="number"
+              placeholder="Amount"
+              value={transactionAmount}
+              required
+              onChange={(e) => setTransactionAmount(e.target.value)}
+            />
+
+            <input
+              type="radio"
+              id="expense"
+              value="expense"
+              // property
+              checked={transactionType === "expense"}
+              onChange={(e) => setTransactionType(e.target.value)}
+            />
+
+            <label htmlFor="expense"> Expense</label>
+
+            <input
+              type="radio"
+              id="income"
+              value="income"
+              checked={transactionType === "income"}
+              onChange={(e) => setTransactionType(e.target.value)}
+            />
+
+            <label htmlFor="income"> Income</label>
+
+            <button type="submit"> Add Transaction</button>
+          </form>
+        </div>
+
+        {profilePhoto && (
+          <div className="profile">
+            {" "}
+            <img
+              className="profile-photo"
+              src={profilePhoto}
+              alt="User Profile"
+            />
+            <button className="sign-out-button" onClick={signUserOut}>
+              Sign Out
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Dispaly the transactions */}
+
+      <div className="transactions">
+        <h3> Transactions</h3>
+        <ul>
+          {transactions.map((transaction) => {
+            const { id, description, transactionAmount, transactionType } =
+              transaction;
+            return (
+              <li key={id}>
+                <h4> {description} </h4>
+                <p>
+                  ${transactionAmount} •{" "}
+                  <label
+                    style={{
+                      color: transactionType === "expense" ? "red" : "green",
+                    }}
+                  >
+                    {" "}
+                    {transactionType}{" "}
+                  </label>
+                </p>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    </>
+  );
+};
+
+// STYLE.css
+
+.expense-tracker {
+  width: 100vw;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  color: #023047;
+}
+
+.expense-tracker h1 {
+  font-size: 40px;
+}
+.expense-tracker button {
+  margin-left: 10px;
+}
+.profile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-left: 200px;
+}
+.profile-photo {
+  width: 200px;
+  border-radius: 50%;
+}
+
+.sign-out-button {
+  border: none;
+  margin-top: 50px;
+  width: 150px;
+  background: #3498db;
+  background-image: linear-gradient(to bottom, #3498db, #2980b9);
+  border-radius: 10px;
+  color: #ffffff;
+  font-size: 22px;
+  font-weight: bold;
+  padding: 10px 20px 10px 20px;
+  text-decoration: none;
+}
+
+.sign-out-button:hover {
+  background: #3cb0fd;
+
+  background-image: linear-gradient(to bottom, #3cb0fd, #3498db);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.transactions {
+  margin-left: 430px;
+  margin-top: 20px;
+  padding-left: 10px;
+  width: 600px;
+  height: 400px;
+  overflow: auto;
+  border: 3px solid #023047;
+}
